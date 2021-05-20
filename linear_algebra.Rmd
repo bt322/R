@@ -1,0 +1,188 @@
+---
+title: "**Linear Algebra in R**"
+author: "Beau Thetford"
+date: "19 May 2021"
+output:
+  html_document:
+    df_print: paged
+---
+
+## Require Packages
+```{r results="hide"}
+require(matlib)
+require(pracma)
+require(ggplot2)
+```
+
+## Matrices
+```{r}
+A <- matrix(c(1,2,3,4), nrow = 2, byrow = TRUE)
+B <- matrix(c(5,6,7,8), nrow = 2, byrow = TRUE)
+A
+B
+```
+
+## Math
+```{r}
+A+B #addition
+A %*% B #matrix multiplication
+A * B #entrywise multiplication
+inv(A) #inverses
+
+#pointing to entries
+A[1,2] + B[2,2]
+
+#slices
+A[1,] #first row of A
+B[,2] #second col of B
+
+#dot product
+x <- c(4,-3,5) #vectors
+y <- c(5,6,8)
+
+dot(x,y)
+
+dot(A[,2], B[,2]) #dot columns of matrices
+
+#trace (matlib)
+tr(A)
+
+#adjoint
+adjoint(A)
+
+#Frobenius inner product
+tr(adjoint(A) %*% B)
+```
+
+# Systems of equations
+Solve the system
+\begin{align*}
+  x_1 + 2x_2 &= 1 \\
+  3x_1 -x_2 &= 4.
+\end{align*}
+
+```{r}
+A <- matrix(c(1,2,3,-1), nrow=2 ) #coefficient matrix
+A
+
+b <- matrix(c(1,5), ncol=1) #rhs vector
+b
+
+aug <- cbind(A,b) #augmented 
+
+rref(aug) #pacma rref function
+
+x <- rref(aug)[,3] #isolate solution vector
+x
+```
+# Functions
+
+***Frobenius norm of a matrix***
+```{r}
+frob <- function(a){
+  s = 0
+  for (i in 1:nrow(a)){
+    for (j in 1:ncol(a)){
+      s = s + a[i,j]**2
+    }
+  }
+  return(sqrt(s))
+}
+
+#test
+x <- matrix(c(1,2,3,4), nrow=2)
+print(frob(x))
+```
+
+## Matrices as linear transformations
+
+***Rotation in the plane matrix*** 
+```{r}
+rotate <- function(x, theta){
+  # accepts an ordered pair x and a rotation angle theta
+  # returns x rotated by theta radians CCW
+  
+  R <- matrix(c(cos(theta), -sin(theta), sin(theta), cos(theta)), nrow = 2, byrow = T)
+  return(R %*% x)
+}
+
+# test
+x <- c(1,1)
+rotate(x,pi/2)
+```
+
+***Polynomial differentiation matrix (power rule matrix)***
+Let $a \in \mathbb{R}^{n+1}$ be the coefficient vector of a polynomial $f(x) \in P_n(\mathbb{R})$, with respect to the ordered basis $\beta = \{1, x, x^2, x^3, \dots, x^n\}$. Let $b \in \mathbb{R}^n$ be the coefficient vector of $\dfrac{df}{dx}$ in the basis $\gamma = \{1,x,x^2, \dots, x^{n-1}\}$. Then $b$ is given by 
+$$ b = \left[\dfrac{df}{dx}\right]_\beta^\gamma a = 
+\begin{pmatrix}0 & 1 & 0 & 0 & \cdots & 0 \\
+0 & 0 & 2 & 0 & \cdots & 0 \\
+0 & 0 & 0 & 3 & \cdots & 0\\
+\vdots &\vdots &\vdots&\vdots&\ddots& \vdots \\
+0 & 0 & 0 & 0 & 0& n\end{pmatrix}
+\begin{pmatrix}a_0 \\ a_1 \\ a_2 \\ \vdots \\ a_n \end{pmatrix}, $$
+where $\left[\dfrac{df}{dx}\right]_\beta^\gamma$ is the matrix of the derivative transformation $\dfrac{df}{dx} : P_n(\mathbb{R}) \rightarrow P_{n-1}(\mathbb{R})$ w.r.t the $\beta$ and $\gamma$ bases.
+
+```{r}
+polydiff <- function(a, n){
+  # Accepts a vector (a) of polynomial coefficients relative
+  # to the ordered basis {1, x, x^2, x^3, ...} (size n + 1, where (n) is
+  # the degree of the polynomial).
+  # Returns a vector of coefficients of the derivative relative
+  # to the ordered basis for the subspace of dimension deg
+  
+  z <- matrix(data = 0, nrow = n, ncol = 1) # first column of zeros
+  D <- matrix(data = 0, nrow = n, ncol = n) # allocate matrix
+  for (i in 0:n){
+    D[i,i] <- i # assign row index number to the diagonal entries
+  }
+  D <- cbind(z,D) # augment D to z column
+  print('Differentiation Matrix:')
+  print(D)
+  print('df/dx coefficients:')
+  return(D %*% a) # return differentiated coefficient vector
+}
+
+#test
+x <- c(1, 0, 1) # 1 + 0x + 1x^2
+polydiff(x, 2)
+```
+
+
+
+
+## Ill-conditioned systems
+```{r}
+condCheck <- function(A)
+  if (cond(A) < 5 ){
+    print("Great!")
+  } else if (cond(A) > 10 & cond(A) < 50){
+    print("Not so great")
+  } else {
+    print("ill-conditioned system!")
+  }
+
+condCheck(A)
+
+cond(A)
+# norm(inv(A)) * norm(A)
+# fnorm(inv(A)) * fnorm(A)
+```
+
+
+## Eigenvectors and eigenvalues
+```{r}
+E <- eigen(A) #eigenvectors and values
+V <- E$vectors #separate out vectors and values
+lam <- E$values
+```
+
+Sanity check to make sure that $Av_1 = \lambda_1 v_1$, i.e. $Av_1 \cdot \dfrac{1}{\lambda_1} = v_1$:
+```{r}
+V[,1]
+A %*% V[,1] / lam[1]
+```
+
+
+
+
+
